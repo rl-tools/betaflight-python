@@ -16,4 +16,4 @@ dependencies = [
 packages = ["betaflight"]
 
 [tool.hatch.build.hooks.custom]
-path = "build.py"
+path = "hatch_config.py"
