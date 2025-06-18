@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "betaflight"
-version = "0.0.5"
+version = "0.0.6"
 description = "Python wrapper for the Betaflight SITL"
 readme = "README.md"
 authors = [{name = "Jonas Eschmann", email = "jonas.eschmann@gmail.com"}]
@@ -12,7 +12,9 @@ license = {text = "MIT"}
 dependencies = [
   "numpy"
 ]
-homepage = "https://github.com/rl-tools/betaflight-python"
+
+[project.urls]
+Homepage = "https://github.com/rl-tools/betaflight-python"
 
 [tool.hatch.build.targets.wheel]
 packages = ["betaflight"]
