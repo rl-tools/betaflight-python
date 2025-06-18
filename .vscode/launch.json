@@ -7,13 +7,6 @@
             "request": "launch",
             "program": "examples/example.py",
             "console": "integratedTerminal"
-        },
-        {
-            "name": "example: l2f",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "examples/example-l2f.py",
-            "console": "integratedTerminal"
         }
     ]
 }
