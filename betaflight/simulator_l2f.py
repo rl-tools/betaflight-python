@@ -27,7 +27,7 @@ class L2F(Simulator):
         l2f.initial_state(self.device, self.env, self.params, self.state)
         self.previous_time = None
         self.simulation_dts = []
-    def step(self, rpms):
+    async def step(self, rpms):
         simulation_dt = time.time() - self.previous_time
         self.previous_time = time.time()
         self.simulation_dts.append(simulation_dt)
@@ -45,6 +45,13 @@ class L2F(Simulator):
         R_wb = r.as_matrix()
         accelerometer = R_wb.T @ (acceleration - np.array([0, 0, -9.81], dtype=np.float64))
         self.state.assign(self.next_state)
+        if self.state.position[2] <= -0.05:
+            self.state.position[2] = 0
+            self.state.linear_velocity[:] = 0
+            self.state.orientation = [1, 0, 0, 0]
+            self.state.angular_velocity[:] = 0
+        state_action_message = l2f.set_state_action_message(self.device, self.env, self.params, self.ui, self.state, action)
+        await self.websocket.send(state_action_message)
         print(f"RPMs: {rpms} dt: {np.mean(self.simulation_dts):.4f} s, action: {action[0].tolist()}")
         return self.state.position, self.state.orientation, self.state.linear_velocity, self.state.angular_velocity, accelerometer, 101325
 

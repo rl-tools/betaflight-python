@@ -10,6 +10,9 @@ import subprocess
 async def udp_recv(loop, sock):
     return await loop.sock_recv(sock, 1024)
 
+def flu_to_frd(v):
+    return np.array([v[0], -v[1], -v[2]], dtype=np.float64)
+
 class Simulator():
     def __init__(self,
             PORT_PWM = 9002,    # Receive RPMs (from Betaflight)
@@ -44,7 +47,7 @@ class Simulator():
         while len(self.rc_channels) < self.SIMULATOR_MAX_RC_CHANNELS:
             self.rc_channels.append(1000)
 
-    def step(self, rpms):
+    async def step(self, rpms):
         # Placeholder for the step function
         # returns position, orientation, linear_velocity, angular_velocity, accelerometer, pressure # [m, (w, x, y, z) quaternion, m/s, rad/s, m/s^2, ?] all in FLU
         return np.zeros(3), np.array([1, 0, 0, 0]), np.zeros(3), np.zeros(3), np.zeros(3), 101325
@@ -60,12 +63,12 @@ class Simulator():
                 rpms = [0.0, 0.0, 0.0, 0.0]
 
             timestamp = time.time()
-            position, orientation, linear_velocity, angular_velocity, accelerometer, pressure = self.step(rpms)
+            position, orientation, linear_velocity, angular_velocity, accelerometer, pressure = await self.step(rpms)
             rc_packet = struct.pack(f'<d{self.SIMULATOR_MAX_RC_CHANNELS}h', timestamp, *self.rc_channels)
             self.udp_rc_sock.sendto(rc_packet, (self.UDP_IP, self.PORT_RC))
             packet = struct.pack('<d3d3d4d3d3dd',
                 timestamp,
-                *angular_velocity,
+                *flu_to_frd(angular_velocity),
                 *(-accelerometer),
                 *orientation,
                 *position,
