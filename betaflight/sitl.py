@@ -1,3 +1,6 @@
+from 
+
+
 import asyncio
 import socket
 import struct
@@ -11,9 +14,6 @@ import subprocess
 import os
 
 from copy import copy
-import l2f
-from l2f import vector8 as vector
-from foundation_model import QuadrotorPolicy
 
 
 subprocess.Popen(["./betaflight/obj/betaflight_4.6.0_SITL"], cwd=os.path.dirname(os.path.abspath(__file__)))
@@ -26,19 +26,6 @@ PORT_RC = 9004     # Send RC input (to Betaflight)
 UDP_IP = "127.0.0.1"
 SIMULATOR_MAX_RC_CHANNELS=16 # https://github.com/betaflight/betaflight/blob/a94083e77d6258bbf9b8b5388a82af9498c923e9/src/platform/SIMULATOR/target/SITL/target.h#L238
 
-policy = QuadrotorPolicy()
-device = l2f.Device()
-rng = vector.VectorRng()
-env = vector.VectorEnvironment()
-ui = l2f.UI()
-params = vector.VectorParameters()
-state = vector.VectorState()
-next_state = vector.VectorState()
-observation = np.zeros((env.N_ENVIRONMENTS, env.OBSERVATION_DIM), dtype=np.float32)
-vector.initialize_rng(device, rng, 0)
-vector.initialize_environment(device, env)
-vector.sample_initial_parameters(device, env, params, rng)
-vector.initial_state(device, env, params, state)
 
 pygame.init()
 pygame.joystick.init()
@@ -86,28 +73,6 @@ def test_rc_channels():
         if button:
             print(f"Button {i} pressed")
 
-def get_rc_channels():
-    pygame.event.pump()
-    if joystick is None:
-        return [1500] * SIMULATOR_MAX_RC_CHANNELS
-    axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
-    buttons = [joystick.get_button(i) for i in range(joystick.get_numbuttons())]
-    rc = []
-    for key in betaflight_order:
-        cfg = gamepad_mapping[key]
-        if "axis" in cfg:
-            idx = cfg["axis"]
-            v = axes[idx] if idx < len(axes) else 0.0
-        else:
-            idx = cfg["button"]
-            v = 1.0 if idx < len(buttons) and buttons[idx] else 0.0
-        if cfg.get("invert", False):
-            v = -v
-        rc.append(int((v + 1) * 500 + 1000))
-    rc = rc[:SIMULATOR_MAX_RC_CHANNELS]
-    while len(rc) < SIMULATOR_MAX_RC_CHANNELS:
-        rc.append(1000)
-    return rc
 
 def parse_rpm_packet(data):
     # 4 float32 = 16 bytes
@@ -144,16 +109,6 @@ async def udp_recv(loop, sock):
     return await loop.sock_recv(sock, 1024)
 
 async def main():
-    uri = "ws://localhost:13337/backend"
-    async with websockets.connect(uri) as websocket:
-        handshake = json.loads(await websocket.recv(uri))
-        assert(handshake["channel"] == "handshake")
-        namespace = handshake["data"]["namespace"]
-        ui.ns = namespace
-        ui_message = vector.set_ui_message(device, env, ui)
-        parameters_message = vector.set_parameters_message(device, env, params, ui)
-        await websocket.send(ui_message)
-        await websocket.send(parameters_message)
 
         loop = asyncio.get_running_loop()
         udp_pwm_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -162,7 +117,6 @@ async def main():
         udp_state_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_rc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        policy.reset()
         armed = False
         simulation_dts = []
         previous_time = time.time()
